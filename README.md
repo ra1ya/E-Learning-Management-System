@@ -58,6 +58,8 @@ app/
 ├── Models/
 database/
 ├── migrations/
+├── sample/
+│   └── dblearnn_demo.sql
 resources/
 ├── views/
 routes/
@@ -85,6 +87,22 @@ The system includes models for core LMS entities such as:
 - Student Answers
 - Results
 
+## Demo Database
+
+A sanitized demo SQL dump is available at:
+
+```text
+database/sample/dblearnn_demo.sql
+```
+
+It contains only fictional demo accounts and sample academic data. No real personal information, production credentials, or session data are included.
+
+Demo account password for the seeded Admin, Teacher, and Student accounts:
+
+```text
+password
+```
+
 ## Installation
 
 ### Requirements
@@ -100,7 +118,7 @@ The system includes models for core LMS entities such as:
 
 ```bash
 git clone https://github.com/ra1ya/E_learn.git
-cd E_learn/learning-system
+cd E_learn
 ```
 
 2. Install PHP dependencies:
@@ -129,10 +147,18 @@ php artisan key:generate
 
 6. Configure your MySQL database credentials in `.env`.
 
-7. Run the migrations:
+7. Choose one database setup method:
+
+**Option A — Laravel migrations**
 
 ```bash
 php artisan migrate
+```
+
+**Option B — Import the sanitized demo database**
+
+```bash
+mysql -u YOUR_DB_USER -p YOUR_DB_NAME < database/sample/dblearnn_demo.sql
 ```
 
 8. Start the frontend development server:
