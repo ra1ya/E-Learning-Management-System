@@ -1,51 +1,48 @@
 # E-Learning Management System (LMS)
 
-A multi-role Learning Management System built with **Laravel**, **PHP**, and **MySQL** to support core academic workflows for administrators, teachers, and students.
+A multi-role Learning Management System built with **Laravel 11**, **PHP 8.2+**, **MySQL**, and **Blade**. The application separates administrator, teacher, and student workflows with dedicated Laravel authentication guards and role-specific routes.
 
-This project demonstrates practical experience with Laravel MVC architecture, authentication, relational database design, Eloquent models, role-specific workflows, reporting, and PDF generation.
+## Core Features
 
-## Overview
-
-The system provides dedicated workflows for three main user roles:
-
-- **Administrators** — manage students, teachers, courses, batches, enrollments, payments, and reports.
-- **Teachers** — manage course-related activities, homework, questions, tests, student answers, and results.
-- **Students** — access courses, assessment-related workflows, answers, and results through dedicated authenticated routes.
-
-## Key Features
-
-### Administration
-- Student and teacher management
-- Course and batch management
-- Student enrollment management
-- Payment management
-- Administrative dashboards and workflows
-- PDF payment receipt generation
+### Administrator
+- Manage students and teachers
+- Manage courses and batches
+- Manage enrollments and payments
+- Generate protected PDF payment receipts
 
 ### Teacher
-- Course-related management
-- Homework management
-- Question and test management
-- Student answer review
-- Result management
+- Manage courses
+- Create homework and assessment questions
+- Create tests and test questions
+- Review student homework and test submissions
+- Manage student results
 
 ### Student
-- Dedicated student authentication flow
-- Course access
-- Assessment-related workflows
-- Answer submission and management
-- Result viewing
+- Dedicated student registration and authentication
+- Access enrolled courses only
+- Submit homework and test answers
+- View personal results
+
+## Security and Data Integrity
+
+- Separate `admin`, `teacher`, and `students` authentication guards
+- Public administrator and teacher registration is disabled
+- Payment reports require administrator authentication
+- Student submissions use the authenticated student identity rather than trusting a submitted student ID
+- Homework/test questions are validated against the selected assessment
+- Student answer detail pages are scoped to the authenticated student
+- Passwords are hashed and administrative CRUD requests are validated
+- Demo SQL contains fictional data only
 
 ## Tech Stack
 
-- **Backend:** PHP 8.2+, Laravel 11
-- **Database:** MySQL
-- **Architecture:** MVC
-- **ORM:** Eloquent
-- **Frontend:** Blade, HTML, CSS, JavaScript
-- **Authentication:** Role-specific Laravel authentication flows
-- **PDF Generation:** DomPDF
-- **Package Management:** Composer, npm
+- PHP 8.2+
+- Laravel 11
+- MySQL / MariaDB
+- Blade, HTML, CSS, JavaScript
+- Eloquent ORM
+- DomPDF
+- Composer and npm
 
 ## Project Structure
 
@@ -61,7 +58,7 @@ database/
 ├── sample/
 │   └── dblearnn_demo.sql
 resources/
-├── views/
+└── views/
 routes/
 ├── web.php
 ├── admin-auth.php
@@ -69,35 +66,17 @@ routes/
 └── students-auth.php
 ```
 
-The application separates key workflows by user type and uses Laravel models, controllers, routes, migrations, and Blade views to keep the codebase organized and maintainable.
-
-## Main Domain Models
-
-The system includes models for core LMS entities such as:
-
-- Students
-- Teachers
-- Courses
-- Batches
-- Enrollments
-- Payments
-- Homework
-- Questions
-- Tests
-- Student Answers
-- Results
-
 ## Demo Database
 
-A sanitized demo SQL dump is available at:
+A sanitized demo database is available at:
 
 ```text
 database/sample/dblearnn_demo.sql
 ```
 
-It contains only fictional demo accounts and sample academic data. No real personal information, production credentials, or session data are included.
+The sample contains fictional administrator, teacher, student, course, assessment, enrollment, payment, and result data. It does not contain production credentials or session payloads.
 
-Demo account password for the seeded Admin, Teacher, and Student accounts:
+Demo password for the seeded accounts in the SQL sample:
 
 ```text
 password
@@ -110,81 +89,49 @@ password
 - PHP 8.2+
 - Composer
 - Node.js and npm
-- MySQL
+- MySQL or MariaDB
 
 ### Setup
 
-1. Clone the repository:
-
 ```bash
-git clone https://github.com/ra1ya/E_learn.git
-cd E_learn
-```
-
-2. Install PHP dependencies:
-
-```bash
+git clone https://github.com/ra1ya/E-Learning-Management-System.git
+cd E-Learning-Management-System
 composer install
-```
-
-3. Install frontend dependencies:
-
-```bash
 npm install
-```
-
-4. Create the environment file:
-
-```bash
 cp .env.example .env
-```
-
-5. Generate the application key:
-
-```bash
 php artisan key:generate
 ```
 
-6. Configure your MySQL database credentials in `.env`.
+Configure the database credentials in `.env`, then choose one database setup method.
 
-7. Choose one database setup method:
-
-**Option A — Laravel migrations**
+### Option A — Laravel migrations
 
 ```bash
 php artisan migrate
 ```
 
-**Option B — Import the sanitized demo database**
+### Option B — Sanitized demo database
 
 ```bash
 mysql -u YOUR_DB_USER -p YOUR_DB_NAME < database/sample/dblearnn_demo.sql
 ```
 
-8. Start the frontend development server:
+Create the public storage link for uploaded course PDFs:
+
+```bash
+php artisan storage:link
+```
+
+Start the application:
 
 ```bash
 npm run dev
-```
-
-9. Start the Laravel development server:
-
-```bash
 php artisan serve
 ```
 
 ## Portfolio Highlights
 
-This project demonstrates hands-on experience with:
-
-- Multi-role application workflows
-- Laravel MVC architecture
-- Authentication and route separation
-- Relational database design
-- Eloquent models and relationships
-- Business workflow implementation
-- PDF document generation
-- Maintainable backend structure
+This project demonstrates Laravel MVC architecture, multi-guard authentication, relational database design, Eloquent relationships, validated CRUD workflows, assessment submission and grading logic, access control, file uploads, and PDF generation.
 
 ## Author
 
