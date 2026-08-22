@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Students;
 
 use App\Http\Controllers\Controller;
+use App\Models\Enrollment;
 use App\Models\Test;
 use App\Models\Testanswer;
 use App\Models\Testques;
@@ -14,15 +15,19 @@ class TestanswerController extends Controller
 {
     public function index()
     {
-        $tests = Test::with('testques')->get();
+        $courseIds = $this->enrolledCourseIds();
+        $tests = Test::with('testques')
+            ->whereIn('course_id', $courseIds)
+            ->latest()
+            ->get();
 
         return view('students.testanswer.index', ['testanswer' => $tests]);
     }
 
     public function create(Request $request)
     {
-        $testId = $request->integer('test_id');
-        $test = Test::with('testques')->findOrFail($testId);
+        $test = Test::with('testques')->findOrFail($request->integer('test_id'));
+        $this->authorizeTest($test);
 
         return view('students.testanswer.create', compact('test'));
     }
@@ -38,8 +43,9 @@ class TestanswerController extends Controller
 
         $studentId = (int) auth('students')->id();
         $test = Test::findOrFail($validated['test_id']);
-        $questionIds = collect($validated['answers'])->pluck('testques_id')->map(fn ($id) => (int) $id);
+        $this->authorizeTest($test);
 
+        $questionIds = collect($validated['answers'])->pluck('testques_id')->map(fn ($id) => (int) $id);
         $questions = Testques::where('test_id', $test->id)
             ->whereIn('id', $questionIds)
             ->get()
@@ -114,5 +120,22 @@ class TestanswerController extends Controller
     public function result()
     {
         return view('students.testanswer.result');
+    }
+
+    private function authorizeTest(Test $test): void
+    {
+        abort_unless($this->enrolledCourseIds()->contains((int) $test->course_id), 403);
+    }
+
+    private function enrolledCourseIds()
+    {
+        return Enrollment::with('batch')
+            ->where('student_id', auth('students')->id())
+            ->get()
+            ->pluck('batch.course_id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
     }
 }

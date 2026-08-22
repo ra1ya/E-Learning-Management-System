@@ -2,50 +2,77 @@
 
 namespace App\Http\Controllers\Teacher;
 
-namespace App\Http\Controllers\Teacher;
 use App\Http\Controllers\Controller;
-use App\Models\Homework;
 use App\Models\Question;
-use App\Models\StudentAnswer;
-use App\Models\Subjects;
-use Illuminate\Http\Request;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class QuestionController extends Controller
 {
-
-    public function index()
+    public function index(): View
     {
-        $question = Question::all();
-        return view('teacher.question.index')->with('question', $question);
+        return view('teacher.question.index', [
+            'question' => Question::query()->with('homework')->latest()->get(),
+        ]);
     }
-   
-        public function show(string $id)
+
+    public function show(string $id): View
     {
-        
-        $question = Question::find($id);
-        return view('teacher.question.show')->with('question', $question);
-    
+        return view('teacher.question.show', [
+            'question' => Question::with('homework')->findOrFail($id),
+        ]);
+    }
+
+    public function edit(string $id): View
+    {
+        return view('teacher.question.edit', [
+            'question' => Question::findOrFail($id),
+        ]);
+    }
+
+    public function update(Request $request, string $id): RedirectResponse
+    {
+        $question = Question::findOrFail($id);
+
+        $validated = $request->validate([
+            'text' => ['required', 'string', 'max:1000'],
+            'type' => ['required', Rule::in(['text', 'radio', 'checkbox'])],
+            'options' => ['nullable', 'array'],
+            'options.*' => ['nullable', 'string', 'max:255'],
+            'correct_answers' => ['sometimes', 'nullable', 'array'],
+            'correct_answers.*' => ['nullable', 'string', 'max:255'],
+            'marks' => ['sometimes', 'nullable', 'integer', 'min:1'],
+        ]);
+
+        if (array_key_exists('options', $validated)) {
+            $options = array_values(array_filter(
+                $validated['options'] ?? [],
+                fn ($value) => trim((string) $value) !== ''
+            ));
+            $validated['options'] = $options === [] ? null : json_encode($options);
         }
-        public function edit(string $id)
-    {
-        $question = Question::find($id);
-        return view('teacher.question.edit')->with('question', $question);
+
+        if (array_key_exists('correct_answers', $validated)) {
+            $answers = array_values(array_filter(
+                $validated['correct_answers'] ?? [],
+                fn ($value) => trim((string) $value) !== ''
+            ));
+            $validated['correct_answers'] = $answers === [] ? null : json_encode($answers);
+        }
+
+        $question->update($validated);
+
+        return redirect()->route('teacher.question.index')
+            ->with('flash_message', 'Question updated successfully.');
     }
 
-    public function update(Request $request, string $id)
+    public function destroy(string $id): RedirectResponse
     {
-        $question = Question::find($id);
-        $input = $request->all();
-        $question->update($input);
-        return redirect('teacher/question')->with('flash_message', 'Question Updated!');
-    }
+        Question::findOrFail($id)->delete();
 
-    public function destroy(string $id)
-    {
-            Question::destroy($id);
-        return redirect('teacher/question')->with('flash_message', 'Question deleted!');
+        return redirect()->route('teacher.question.index')
+            ->with('flash_message', 'Question deleted successfully.');
     }
-        
-    
 }

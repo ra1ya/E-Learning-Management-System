@@ -25,7 +25,7 @@ Route::middleware('auth:teacher')->prefix('teacher')->name('teacher.')->group(fu
     Route::resource('course', CoursesController::class);
     Route::resource('student', StudentsController::class)->only(['index', 'show']);
     Route::resource('homework', HomeworkController::class);
-    Route::resource('question', QuestionController::class);
+    Route::resource('question', QuestionController::class)->only(['index', 'show', 'edit', 'update', 'destroy']);
     Route::resource('studentanswer', StudentAnswerController::class)->only(['index', 'show']);
     Route::resource('test', TestController::class);
     Route::resource('testanswer', TestanswerController::class)->only(['index', 'show']);

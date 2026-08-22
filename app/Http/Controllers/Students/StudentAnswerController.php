@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Students;
 
 use App\Http\Controllers\Controller;
+use App\Models\Enrollment;
 use App\Models\Homework;
 use App\Models\Question;
 use App\Models\StudentAnswer;
@@ -14,15 +15,19 @@ class StudentAnswerController extends Controller
 {
     public function index()
     {
-        $homeworks = Homework::with('question')->get();
+        $courseIds = $this->enrolledCourseIds();
+        $homeworks = Homework::with('question')
+            ->whereIn('course_id', $courseIds)
+            ->latest()
+            ->get();
 
         return view('students.studentanswer.index', compact('homeworks'));
     }
 
     public function create(Request $request)
     {
-        $homeworkId = $request->integer('homework_id');
-        $homework = Homework::with('question')->findOrFail($homeworkId);
+        $homework = Homework::with('question')->findOrFail($request->integer('homework_id'));
+        $this->authorizeHomework($homework);
 
         return view('students.studentanswer.create', compact('homework'));
     }
@@ -38,8 +43,9 @@ class StudentAnswerController extends Controller
 
         $studentId = (int) auth('students')->id();
         $homework = Homework::findOrFail($validated['homework_id']);
-        $questionIds = collect($validated['answers'])->pluck('question_id')->map(fn ($id) => (int) $id);
+        $this->authorizeHomework($homework);
 
+        $questionIds = collect($validated['answers'])->pluck('question_id')->map(fn ($id) => (int) $id);
         $questions = Question::where('homework_id', $homework->id)
             ->whereIn('id', $questionIds)
             ->get()
@@ -114,5 +120,22 @@ class StudentAnswerController extends Controller
     public function result()
     {
         return view('students.studentanswer.result');
+    }
+
+    private function authorizeHomework(Homework $homework): void
+    {
+        abort_unless($this->enrolledCourseIds()->contains((int) $homework->course_id), 403);
+    }
+
+    private function enrolledCourseIds()
+    {
+        return Enrollment::with('batch')
+            ->where('student_id', auth('students')->id())
+            ->get()
+            ->pluck('batch.course_id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
     }
 }

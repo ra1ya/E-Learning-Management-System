@@ -2,9 +2,12 @@ name: LMS CI
 
 on:
   push:
-    branches: [main, hardening/portfolio-fixes]
+    branches: [main, polish/portfolio-final]
   pull_request:
     branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
   verify:
@@ -27,6 +30,9 @@ jobs:
           node-version: '20'
           cache: npm
 
+      - name: Validate Composer metadata
+        run: composer validate --no-check-publish
+
       - name: Install PHP dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
@@ -34,6 +40,9 @@ jobs:
         run: |
           cp .env.example .env
           php artisan key:generate
+
+      - name: Lint PHP sources
+        run: find app routes database tests -name '*.php' -print0 | xargs -0 -n1 php -l
 
       - name: Verify migrations and demo seed
         env:
@@ -44,8 +53,8 @@ jobs:
       - name: Verify routes
         run: php artisan route:list
 
-      - name: Run LMS security tests
-        run: php artisan test --filter=LmsSecurityTest
+      - name: Run full test suite
+        run: php artisan test
 
       - name: Install frontend dependencies
         run: npm ci

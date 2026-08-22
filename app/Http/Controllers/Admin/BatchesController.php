@@ -8,75 +8,69 @@ use App\Models\Courses;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Carbon\Carbon;
+
 class BatchesController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index():View
+    public function index(): View
     {
-        $batches = Batches::all();
-        return view ('admin.batches.index')->with('batches', $batches);
+        return view('admin.batches.index', [
+            'batches' => Batches::with('course')->latest()->get(),
+        ]);
     }
 
-   
-    public function create():View
+    public function create(): View
     {
-        $courses= Courses::pluck('name','id');
-        return view('admin.batches.create',compact('courses')); 
-        
+        return view('admin.batches.create', [
+            'courses' => Courses::pluck('name', 'id'),
+        ]);
     }
 
-    
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'course_id' => 'required|integer|exists:courses,id', 
-            'start_date' => 'required|date',
+        Batches::create($this->validatedData($request));
+
+        return redirect()->route('admin.batches.index')
+            ->with('flash_message', 'Batch added successfully.');
+    }
+
+    public function show(string $id): View
+    {
+        return view('admin.batches.show', [
+            'batches' => Batches::with('course')->findOrFail($id),
         ]);
-    
-      
-        $input = $request->only(['name', 'course_id', 'start_date']);
-        $input['start_date'] = Carbon::parse($request->start_date)->format('Y-m-d');
-    
-        
-        Batches::create($input);
-    
-        return redirect('admin/batches')->with('flash_message', 'Batch Added!');
-    
-    }
-    
-    public function show($id):View
-    {
-        $batches = Batches::find($id);
-        return view('admin.batches.show')->with('batches', $batches);
     }
 
-   
-    public function edit($id):View
+    public function edit(string $id): View
     {
-        $batches = Batches::find($id);
-        return view('admin.batches.edit')->with('batches', $batches);
+        return view('admin.batches.edit', [
+            'batches' => Batches::findOrFail($id),
+            'courses' => Courses::pluck('name', 'id'),
+        ]);
     }
 
-   
     public function update(Request $request, string $id): RedirectResponse
     {
-        $batches = Batches::find($id);
-        $input = $request->all();
-        $batches->update($input);
-        return redirect('admin/batches')->with('flash_message', 'batches Updated!'); 
+        $batch = Batches::findOrFail($id);
+        $batch->update($this->validatedData($request));
+
+        return redirect()->route('admin.batches.index')
+            ->with('flash_message', 'Batch updated successfully.');
     }
 
-   
-    public function destroy($id)
+    public function destroy(string $id): RedirectResponse
     {
-        
-        Batches::destroy($id);
-        return redirect('admin/batches')->with('flash_message', 'batches deleted!'); 
+        Batches::findOrFail($id)->delete();
+
+        return redirect()->route('admin.batches.index')
+            ->with('flash_message', 'Batch deleted successfully.');
+    }
+
+    private function validatedData(Request $request): array
+    {
+        return $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'course_id' => ['required', 'integer', 'exists:courses,id'],
+            'start_date' => ['required', 'date'],
+        ]);
     }
 }
