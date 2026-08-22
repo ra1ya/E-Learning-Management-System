@@ -5,24 +5,45 @@
 [![PHP 8.2+](https://img.shields.io/badge/PHP-8.2%2B-blue.svg)](https://www.php.net/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A multi-role Learning Management System built with **Laravel 11**, **PHP 8.2+**, **MySQL/MariaDB**, and **Blade**. The application separates administrator, teacher, and student workflows with dedicated Laravel authentication guards and role-specific routes.
+A multi-role **Learning Management System** built with Laravel 11, PHP 8.2+, MySQL/MariaDB, Blade, and Vite. The project demonstrates practical backend engineering through separate administrator, teacher, and student workflows, enrollment-based authorization, assessments, payments, PDF receipts, relational data design, automated testing, and CI verification.
 
-The project focuses on backend workflow design, authorization, relational data, assessment handling, PDF receipts, and maintainable Laravel structure rather than UI complexity.
+The portfolio emphasis is **Laravel architecture, backend workflows, access control, and data integrity** rather than visual complexity.
 
 ## Recruiter Snapshot
 
-- Dedicated `admin`, `teacher`, and `students` authentication guards
-- Protected administrator workflows for users, courses, batches, enrollments, payments, and receipts
-- Student access restricted to enrolled courses and their assessments
-- Assessment submissions use the authenticated student identity and validate question ownership
-- Validated CRUD workflows and hashed credentials
-- Course PDF uploads through Laravel public storage
-- Sanitized demo database and repeatable demo seeding
-- GitHub Actions verifies PHP syntax, migrations, seeders, routes, the full automated test suite, and frontend production build
+- Multi-guard authentication for `admin`, `teacher`, and `students`
+- Enrollment-based authorization for student courses, homework, and tests
+- Assessment submissions tied to the authenticated student identity
+- Question-to-assessment ownership validation to prevent cross-assessment submissions
+- Protected administrator workflows for students, teachers, courses, batches, enrollments, payments, and PDF receipts
+- Validated CRUD flows and Laravel password hashing
+- Sanitized demo database plus repeatable demo seeding
+- Full GitHub Actions pipeline covering install, migrations, seeders, routes, tests, PHP syntax, and frontend production build
+
+## Architecture
+
+```mermaid
+flowchart LR
+    A[Administrator] --> AG[admin guard]
+    T[Teacher] --> TG[teacher guard]
+    S[Student] --> SG[students guard]
+
+    AG --> C[Laravel Controllers]
+    TG --> C
+    SG --> C
+
+    C --> M[Eloquent Models]
+    M --> DB[(MySQL / MariaDB)]
+    C --> PDF[DomPDF Receipts]
+    C --> FS[Public Storage]
+```
+
+For a deeper technical walkthrough, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md). Security controls and production expectations are documented in [`SECURITY.md`](SECURITY.md).
 
 ## Core Features
 
 ### Administrator
+
 - Manage students and teachers
 - Manage courses and batches
 - Manage enrollments and payments
@@ -30,17 +51,19 @@ The project focuses on backend workflow design, authorization, relational data, 
 - Update account profile and password
 
 ### Teacher
+
 - Manage courses
 - Create and manage homework and tests
-- Create assessment questions as part of assessment workflows
+- Manage assessment questions
 - Review student homework and test submissions
 - Manage student results
 - Update account profile and password
 
-> **Portfolio scope:** teacher accounts are treated as trusted instructional staff with shared course-management access. Per-teacher course ownership is outside this demo's scope and is not advertised as implemented.
+> **Portfolio scope:** teacher accounts are treated as trusted instructional staff with shared course-management access. Per-teacher course ownership is intentionally outside this demo's scope and is not advertised as implemented.
 
 ### Student
-- Dedicated student registration and authentication
+
+- Dedicated registration and authentication
 - Access enrolled courses only
 - Access homework and tests only for enrolled courses
 - Submit homework and test answers
@@ -55,8 +78,8 @@ The project focuses on backend workflow design, authorization, relational data, 
 - Homework/test questions must belong to the selected assessment
 - Students cannot access assessments outside their enrolled courses
 - Student answer detail pages are scoped to the authenticated student
-- Administrative CRUD requests use validation instead of raw request mass assignment
-- Passwords are hashed using Laravel's password casting/Hash facilities
+- Protected CRUD requests validate accepted fields instead of trusting raw request payloads
+- Passwords are hashed using Laravel facilities
 - Demo data is fictional and sanitized
 
 ## Tech Stack
@@ -84,6 +107,9 @@ database/
 ├── seeders/
 └── sample/
     └── dblearnn_demo.sql
+
+docs/
+└── ARCHITECTURE.md
 
 resources/
 └── views/
@@ -122,7 +148,7 @@ php artisan key:generate
 
 Configure database credentials in `.env`, then choose one database setup method.
 
-### Option A — Fresh Laravel database with demo seed
+### Option A — Fresh database with demo seed
 
 ```bash
 php artisan migrate:fresh --seed
@@ -149,10 +175,11 @@ php artisan serve
 
 ## Automated Verification
 
-The CI workflow runs on pushes and pull requests and verifies:
+The CI workflow verifies the repository from a clean environment with:
 
 ```text
 composer validate
+composer install
 PHP syntax linting
 php artisan migrate:fresh --seed
 php artisan route:list
@@ -161,7 +188,7 @@ npm ci
 npm run build
 ```
 
-This makes the repository reproducible for technical review instead of relying only on manual setup claims.
+This gives reviewers a reproducible technical signal instead of relying only on screenshots or manual setup claims.
 
 ## Demo Database
 
@@ -179,13 +206,24 @@ Demo password for seeded/demo accounts:
 password
 ```
 
-## Portfolio Highlights
+## What This Project Demonstrates
 
-This project demonstrates Laravel MVC architecture, multi-guard authentication, relational database design, Eloquent relationships, enrollment-based authorization, validated CRUD workflows, assessment submission and grading logic, file uploads, PDF generation, automated testing, and CI verification.
+This repository is intended to demonstrate practical experience with:
+
+- Laravel MVC architecture
+- Multi-guard authentication
+- Authorization and access-boundary design
+- Eloquent relationships and relational database modeling
+- Enrollment-driven LMS workflows
+- Assessment submission and grading logic
+- File uploads and PDF generation
+- Request validation and secure record access
+- Automated testing and CI/CD fundamentals
+- Reproducible local setup and database seeding
 
 ## License
 
-This project is available under the MIT License. See `LICENSE`.
+This project is available under the MIT License. See [`LICENSE`](LICENSE).
 
 ## Author
 
