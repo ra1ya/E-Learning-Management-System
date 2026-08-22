@@ -4,97 +4,71 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Enrollment;
-use Illuminate\Http\Request;
 use App\Models\Payments;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
 
 class PaymentsController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index()
+    public function index(): View
     {
-        $payments = Payments::all();
-        return view ('admin.payments.index')->with('payments', $payments);
+        $payments = Payments::with('enrollment')->latest()->get();
+
+        return view('admin.payments.index', compact('payments'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
+    public function create(): View
     {
-        $enrollment= Enrollment::pluck('enroll_no','id');
-        return view('admin.payments.create',compact('enrollment')); 
+        $enrollment = Enrollment::pluck('enroll_no', 'id');
+
+        return view('admin.payments.create', compact('enrollment'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function store(Request $request)
+    public function store(Request $request): RedirectResponse
     {
-        $input = $request->all();
-        Payments::create($input);
-        return redirect('admin/payments')->with('flash_message', 'Payments Addedd!');
+        $validated = $request->validate([
+            'enrollment_id' => ['required', 'integer', 'exists:enrollment,id'],
+            'paid_date' => ['required', 'date'],
+            'amount' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        Payments::create($validated);
+
+        return redirect()->route('admin.payments.index')->with('flash_message', 'Payment added successfully.');
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function show($id)
+    public function show(string $id): View
     {
-        $payments = Payments::find($id);
-        return view('admin.payments.show')->with('payments', $payments);
+        return view('admin.payments.show', ['payments' => Payments::with('enrollment')->findOrFail($id)]);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function edit($id)
+    public function edit(string $id): View
     {
-       
-        $payments = Payments::find($id);
-        $enrollment= Enrollment::pluck('enroll_no','id');
-        return view('admin.payments.edit',compact('payments','enrollment'));
+        $payments = Payments::findOrFail($id);
+        $enrollment = Enrollment::pluck('enroll_no', 'id');
 
+        return view('admin.payments.edit', compact('payments', 'enrollment'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, $id)
+    public function update(Request $request, string $id): RedirectResponse
     {
-        $payments = Payments::find($id);
-        $input = $request->all();
-        $payments->update($input);
-        return redirect('admin/payments')->with('flash_message', 'payments Updated!'); 
+        $payment = Payments::findOrFail($id);
+        $validated = $request->validate([
+            'enrollment_id' => ['required', 'integer', 'exists:enrollment,id'],
+            'paid_date' => ['required', 'date'],
+            'amount' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        $payment->update($validated);
+
+        return redirect()->route('admin.payments.index')->with('flash_message', 'Payment updated successfully.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy($id)
+    public function destroy(string $id): RedirectResponse
     {
-        Payments::destroy($id);
-        return redirect('admin/payments')->with('flash_message', 'payments deleted!'); 
+        Payments::findOrFail($id)->delete();
+
+        return redirect()->route('admin.payments.index')->with('flash_message', 'Payment deleted successfully.');
     }
 }

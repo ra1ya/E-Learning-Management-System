@@ -1,33 +1,25 @@
 @extends('teacher.layouts.app')
 
 @section('content')
- 
 <div class="card">
-  <div class="card-header">Contactus Page</div>
-  <div class="card-body">
-      
-      <form action="{{ url('teacher/course/' .$courses->id) }}" method="post">
-        {!! csrf_field() !!}
-        @method("PATCH")
-        <input type="hidden" name="id" id="id" value="{{$courses->id}}" id="id" />
-        <label>Name</label></br>
-        <input type="text" name="name" id="name" value="{{$courses->name}}" class="form-control"></br>
-        <label>Syllabus</label></br>
-        <input type="text" name="syllabus" id="syllabus" value="{{$courses->syllabus}}" class="form-control"></br>
-        <label>Duration</label></br>
-        <input type="text" name="duration" id="duration" value="{{$courses->duration}}" class="form-control"></br>
-       
-        <label>video</label></br>
-        <input type="text" name="video_link" id="video_link" value="{{$courses->video_link}}" class="form-control"></br>
-       
-       
-        <label>pdf_file</label></br>
-        <input type="text" name="pdf_file" id="pdf_file" value="{{$courses->pdf_file}}" class="form-control"></br>
-        <input type="submit" value="Update" class="btn btn-success"></br>
-       
-      </form>
-   
-  </div>
+    <div class="card-header">Edit Course</div>
+    <div class="card-body">
+        <form action="{{ route('teacher.course.update', $courses) }}" method="post" enctype="multipart/form-data">
+            @csrf
+            @method('PATCH')
+            <label>Name</label><br>
+            <input type="text" name="name" value="{{ old('name', $courses->name) }}" class="form-control" required><br>
+            <label>Syllabus</label><br>
+            <textarea name="syllabus" class="form-control" required>{{ old('syllabus', $courses->syllabus) }}</textarea><br>
+            <label>Duration</label><br>
+            <input type="text" name="duration" value="{{ old('duration', $courses->duration) }}" class="form-control" required><br>
+            <label>YouTube Video Link</label><br>
+            <input type="url" name="video_link" value="{{ old('video_link', $courses->video_link) }}" class="form-control"><br>
+            <label>Replace PDF (optional)</label><br>
+            <input type="file" name="pdf_file" class="form-control" accept="application/pdf"><br>
+            @if($courses->pdf_file)<small>Current file: {{ $courses->pdf_file }}</small><br><br>@endif
+            <button type="submit" class="btn btn-success">Update</button>
+        </form>
+    </div>
 </div>
- 
-@stop
+@endsection

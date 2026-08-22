@@ -7,98 +7,112 @@ use App\Models\Test;
 use App\Models\Testanswer;
 use App\Models\Testques;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class TestanswerController extends Controller
 {
-    
     public function index()
-{
-    $testanswer = Test::with('testques')->get();
+    {
+        $tests = Test::with('testques')->get();
 
-    return view('students.testanswer.index', compact('testanswer'));
-}
-
-
-public function create(Request $request)
-{
-    $testId = $request->input('test_id');
-    $test = Test::findOrFail($testId);
-
-    return view('students.testanswer.create', compact('test'));
-}
-
-
-public function store(Request $request)
-{
-    
-    $validatedData = $request->validate([
-        'test_id' => 'required|exists:test,id',
-        'student_id' => 'required|exists:students,id',
-        'answers' => 'required|array',
-        'answers.*.testques_id' => 'required|exists:testques,id',
-        'answers.*.answer' => 'required',
-    ]);
-
-    $totalMarks = 0;  
-    $earnedMarks = 0; 
-
-    foreach ($validatedData['answers'] as $answerData) {
-        $testques = Testques::findOrFail($answerData['testques_id']);
-
-        
-        $questionMark = $testques->marks ?? 1; 
-        $totalMarks += $questionMark;
-
-        $correctAnswers = json_decode($testques->correct_answers, true);
-
-       
-        $submittedAnswer = is_array($answerData['answer']) 
-            ? implode(',', array_map('trim', $answerData['answer'])) 
-            : trim($answerData['answer']);
-
-      
-        $isCorrect = is_array($correctAnswers) 
-            ? in_array($submittedAnswer, array_map('trim', $correctAnswers)) 
-            : trim($correctAnswers) == $submittedAnswer;
-
-     
-        if ($isCorrect) {
-            $earnedMarks += $questionMark;
-        }
-
-       
-        Testanswer::create([
-            'test_id' => $validatedData['test_id'],
-            'student_id' => $validatedData['student_id'],
-            'testques_id' => $answerData['testques_id'],
-            'answer' => $submittedAnswer,
-            'is_correct' => $isCorrect,
-            'total_marks' => $earnedMarks, 
-        ]);
+        return view('students.testanswer.index', ['testanswer' => $tests]);
     }
 
-   
-    session(['earnedMarks' => $earnedMarks, 'totalMarks' => $totalMarks]);
+    public function create(Request $request)
+    {
+        $testId = $request->integer('test_id');
+        $test = Test::with('testques')->findOrFail($testId);
 
-    return redirect()->route('students.testanswer.result')
-        ->with('success', "Your solution has been submitted! Your result : $earnedMarks / $totalMarks.");
-}
-  
+        return view('students.testanswer.create', compact('test'));
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'test_id' => ['required', 'integer', 'exists:test,id'],
+            'answers' => ['required', 'array', 'min:1'],
+            'answers.*.testques_id' => ['required', 'integer', 'exists:testques,id'],
+            'answers.*.answer' => ['required'],
+        ]);
+
+        $studentId = (int) auth('students')->id();
+        $test = Test::findOrFail($validated['test_id']);
+        $questionIds = collect($validated['answers'])->pluck('testques_id')->map(fn ($id) => (int) $id);
+
+        $questions = Testques::where('test_id', $test->id)
+            ->whereIn('id', $questionIds)
+            ->get()
+            ->keyBy('id');
+
+        if ($questions->count() !== $questionIds->unique()->count()) {
+            throw ValidationException::withMessages([
+                'answers' => 'One or more submitted questions do not belong to this test.',
+            ]);
+        }
+
+        $earnedMarks = 0;
+        $totalMarks = 0;
+
+        DB::transaction(function () use ($validated, $studentId, $test, $questions, &$earnedMarks, &$totalMarks) {
+            Testanswer::where('test_id', $test->id)
+                ->where('student_id', $studentId)
+                ->delete();
+
+            foreach ($validated['answers'] as $answerData) {
+                $question = $questions[(int) $answerData['testques_id']];
+                $questionMark = (float) ($question->marks ?? 1);
+                $totalMarks += $questionMark;
+
+                $submittedValues = is_array($answerData['answer'])
+                    ? array_map(fn ($value) => trim((string) $value), $answerData['answer'])
+                    : [trim((string) $answerData['answer'])];
+
+                $correctValues = json_decode($question->correct_answers ?? '[]', true);
+                $correctValues = is_array($correctValues)
+                    ? array_map(fn ($value) => trim((string) $value), $correctValues)
+                    : [];
+
+                sort($submittedValues);
+                sort($correctValues);
+                $isCorrect = $submittedValues === $correctValues;
+
+                if ($isCorrect) {
+                    $earnedMarks += $questionMark;
+                }
+
+                Testanswer::create([
+                    'test_id' => $test->id,
+                    'student_id' => $studentId,
+                    'testques_id' => $question->id,
+                    'answer' => implode(',', $submittedValues),
+                    'is_correct' => $isCorrect,
+                    'type' => $test->type ?? 'test',
+                ]);
+            }
+
+            Testanswer::where('test_id', $test->id)
+                ->where('student_id', $studentId)
+                ->update(['total_marks' => $earnedMarks]);
+        });
+
+        session(['earnedMarks' => $earnedMarks, 'totalMarks' => $totalMarks]);
+
+        return redirect()->route('students.testanswer.result')
+            ->with('success', "Your solution has been submitted! Your result: {$earnedMarks} / {$totalMarks}.");
+    }
+
     public function show($id)
     {
-        $testanswer = Testanswer::findOrFail($id);
+        $testanswer = Testanswer::whereKey($id)
+            ->where('student_id', auth('students')->id())
+            ->firstOrFail();
+
         return view('students.testanswer.show', compact('testanswer'));
     }
 
-
     public function result()
     {
-        
-  return view('students.testanswer.result');
-        }
-    
-
-    
-    
+        return view('students.testanswer.result');
+    }
 }

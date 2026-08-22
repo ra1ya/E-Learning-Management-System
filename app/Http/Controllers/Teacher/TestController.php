@@ -1,57 +1,54 @@
 <?php
 
-namespace App\Http\Controllers\Teacher;;
+namespace App\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
 use App\Models\Courses;
 use App\Models\Test;
 use App\Models\Testques;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class TestController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
     public function index()
     {
-        $test = Test::all();
-        return view('teacher.test.index')->with('test', $test);
+        $test = Test::with('courses')->latest()->get();
+
+        return view('teacher.test.index', compact('test'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
         $courses = Courses::pluck('name', 'id');
+
         return view('teacher.test.create', compact('courses'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        $validatedData = $request->validate([
-            'title' => 'required|string|max:255',
-            'course_id' => 'required|integer',
-            'deadline' => 'required|date',
-            'description' => 'required|string',
-            'testques.*.text' => 'required|string',
-            'testques.*.type' => 'required|string',
-            'testques.*.marks' => 'required|integer|min:1',
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'course_id' => ['required', 'integer', 'exists:courses,id'],
+            'deadline' => ['required', 'date'],
+            'description' => ['required', 'string'],
+            'testques' => ['required', 'array', 'min:1'],
+            'testques.*.text' => ['required', 'string', 'max:255'],
+            'testques.*.type' => ['required', 'string', 'max:50'],
+            'testques.*.options' => ['nullable', 'array'],
+            'testques.*.correct_answers' => ['nullable', 'array'],
+            'testques.*.marks' => ['required', 'integer', 'min:1'],
         ]);
-    
-        $test = Test::create([
-            'title' => $validatedData['title'],
-            'course_id' => $validatedData['course_id'],
-            'deadline' => $validatedData['deadline'],
-            'description' => $validatedData['description'],
-        ]);
-    
-        if (!empty($request->testques)) {
-            foreach ($request->testques as $questionData) {
+
+        DB::transaction(function () use ($validated) {
+            $test = Test::create([
+                'title' => $validated['title'],
+                'course_id' => $validated['course_id'],
+                'deadline' => $validated['deadline'],
+                'description' => $validated['description'],
+            ]);
+
+            foreach ($validated['testques'] as $questionData) {
                 Testques::create([
                     'test_id' => $test->id,
                     'text' => $questionData['text'],
@@ -61,41 +58,44 @@ class TestController extends Controller
                     'marks' => $questionData['marks'],
                 ]);
             }
-        }
-    
-        return redirect()->route('teacher.test.index')->with('success', 'تم إنشاء الاختبار والأسئلة بنجاح.');
+        });
+
+        return redirect()->route('teacher.test.index')->with('success', 'Test created successfully.');
     }
-    
-    /**
-     * Display the specified resource.
-     */
+
     public function show(string $id)
     {
         $test = Test::with('testques')->findOrFail($id);
+
         return view('teacher.test.show', compact('test'));
-    
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(string $id)
     {
-        $test = Test::find($id);
-        return view('teacher.test.edit')->with('test', $test);
+        $test = Test::findOrFail($id);
+
+        return view('teacher.test.edit', compact('test'));
     }
 
     public function update(Request $request, string $id)
     {
-        $test = Test::find($id);
-        $input = $request->all();
-        $test->update($input);
-        return redirect('teacher/test')->with('flash_message', 'Test Updated!');
+        $test = Test::findOrFail($id);
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'course_id' => ['required', 'integer', 'exists:courses,id'],
+            'deadline' => ['required', 'date'],
+            'description' => ['required', 'string'],
+        ]);
+
+        $test->update($validated);
+
+        return redirect()->route('teacher.test.index')->with('flash_message', 'Test updated successfully.');
     }
 
     public function destroy(string $id)
     {
-        Test::destroy($id);
-        return redirect('teacher/test')->with('flash_message', 'Test deleted!');
+        Test::findOrFail($id)->delete();
+
+        return redirect()->route('teacher.test.index')->with('flash_message', 'Test deleted successfully.');
     }
 }
