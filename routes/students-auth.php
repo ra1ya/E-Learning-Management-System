@@ -21,11 +21,11 @@ Route::middleware('auth:students')->prefix('students')->name('students.')->group
         return view('students.dashboard');
     })->name('dashboard');
 
-    Route::resource('studentanswer', StudentAnswerController::class)->only(['index', 'create', 'store', 'show']);
     Route::get('studentanswer/result', [StudentAnswerController::class, 'result'])->name('studentanswer.result');
+    Route::resource('studentanswer', StudentAnswerController::class)->only(['index', 'create', 'store', 'show']);
 
-    Route::resource('testanswer', TestanswerController::class)->only(['index', 'create', 'store', 'show']);
     Route::get('testanswer/result', [TestanswerController::class, 'result'])->name('testanswer.result');
+    Route::resource('testanswer', TestanswerController::class)->only(['index', 'create', 'store', 'show']);
 
     Route::resource('courses', CoursesController::class)->only(['index', 'show']);
     Route::resource('results', ResultController::class)->only(['index']);
