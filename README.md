@@ -1,6 +1,24 @@
 # E-Learning Management System (LMS)
 
-A multi-role Learning Management System built with **Laravel 11**, **PHP 8.2+**, **MySQL**, and **Blade**. The application separates administrator, teacher, and student workflows with dedicated Laravel authentication guards and role-specific routes.
+[![LMS CI](https://github.com/ra1ya/E-Learning-Management-System/actions/workflows/ci.yml/badge.svg)](https://github.com/ra1ya/E-Learning-Management-System/actions/workflows/ci.yml)
+[![Laravel 11](https://img.shields.io/badge/Laravel-11-red.svg)](https://laravel.com/)
+[![PHP 8.2+](https://img.shields.io/badge/PHP-8.2%2B-blue.svg)](https://www.php.net/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+A multi-role Learning Management System built with **Laravel 11**, **PHP 8.2+**, **MySQL/MariaDB**, and **Blade**. The application separates administrator, teacher, and student workflows with dedicated Laravel authentication guards and role-specific routes.
+
+The project focuses on backend workflow design, authorization, relational data, assessment handling, PDF receipts, and maintainable Laravel structure rather than UI complexity.
+
+## Recruiter Snapshot
+
+- Dedicated `admin`, `teacher`, and `students` authentication guards
+- Protected administrator workflows for users, courses, batches, enrollments, payments, and receipts
+- Student access restricted to enrolled courses and their assessments
+- Assessment submissions use the authenticated student identity and validate question ownership
+- Validated CRUD workflows and hashed credentials
+- Course PDF uploads through Laravel public storage
+- Sanitized demo database and repeatable demo seeding
+- GitHub Actions verifies PHP syntax, migrations, seeders, routes, the full automated test suite, and frontend production build
 
 ## Core Features
 
@@ -9,40 +27,47 @@ A multi-role Learning Management System built with **Laravel 11**, **PHP 8.2+**,
 - Manage courses and batches
 - Manage enrollments and payments
 - Generate protected PDF payment receipts
+- Update account profile and password
 
 ### Teacher
 - Manage courses
-- Create homework and assessment questions
-- Create tests and test questions
+- Create and manage homework and tests
+- Create assessment questions as part of assessment workflows
 - Review student homework and test submissions
 - Manage student results
+- Update account profile and password
+
+> **Portfolio scope:** teacher accounts are treated as trusted instructional staff with shared course-management access. Per-teacher course ownership is outside this demo's scope and is not advertised as implemented.
 
 ### Student
 - Dedicated student registration and authentication
 - Access enrolled courses only
+- Access homework and tests only for enrolled courses
 - Submit homework and test answers
-- View personal results
+- View only personal answer details and results
+- Update account profile and password
 
 ## Security and Data Integrity
 
-- Separate `admin`, `teacher`, and `students` authentication guards
-- Public administrator and teacher registration is disabled
+- Public administrator and teacher self-registration is disabled
 - Payment reports require administrator authentication
-- Student submissions use the authenticated student identity rather than trusting a submitted student ID
-- Homework/test questions are validated against the selected assessment
+- Student submissions derive identity from the authenticated student guard
+- Homework/test questions must belong to the selected assessment
+- Students cannot access assessments outside their enrolled courses
 - Student answer detail pages are scoped to the authenticated student
-- Passwords are hashed and administrative CRUD requests are validated
-- Demo SQL contains fictional data only
+- Administrative CRUD requests use validation instead of raw request mass assignment
+- Passwords are hashed using Laravel's password casting/Hash facilities
+- Demo data is fictional and sanitized
 
 ## Tech Stack
 
-- PHP 8.2+
-- Laravel 11
-- MySQL / MariaDB
-- Blade, HTML, CSS, JavaScript
-- Eloquent ORM
-- DomPDF
-- Composer and npm
+- **Backend:** PHP 8.2+, Laravel 11
+- **Database:** MySQL / MariaDB
+- **Frontend:** Blade, HTML, CSS, JavaScript, Vite
+- **ORM:** Eloquent
+- **PDF:** DomPDF
+- **Testing:** PHPUnit / Laravel Feature Tests
+- **CI:** GitHub Actions
 
 ## Project Structure
 
@@ -52,46 +77,39 @@ app/
 │   ├── Admin/
 │   ├── Teacher/
 │   └── Students/
-├── Models/
+└── Models/
+
 database/
 ├── migrations/
-├── sample/
-│   └── dblearnn_demo.sql
+├── seeders/
+└── sample/
+    └── dblearnn_demo.sql
+
 resources/
 └── views/
+
 routes/
 ├── web.php
 ├── admin-auth.php
 ├── teacher-auth.php
 └── students-auth.php
+
+tests/
+└── Feature/
+    └── LmsSecurityTest.php
 ```
 
-## Demo Database
-
-A sanitized demo database is available at:
-
-```text
-database/sample/dblearnn_demo.sql
-```
-
-The sample contains fictional administrator, teacher, student, course, assessment, enrollment, payment, and result data. It does not contain production credentials or session payloads.
-
-Demo password for the seeded accounts in the SQL sample:
-
-```text
-password
-```
-
-## Installation
+## Local Setup
 
 ### Requirements
 
 - PHP 8.2+
 - Composer
-- Node.js and npm
-- MySQL or MariaDB
+- Node.js 20+
+- npm
+- MySQL / MariaDB, or SQLite for automated tests
 
-### Setup
+### Install
 
 ```bash
 git clone https://github.com/ra1ya/E-Learning-Management-System.git
@@ -102,15 +120,15 @@ cp .env.example .env
 php artisan key:generate
 ```
 
-Configure the database credentials in `.env`, then choose one database setup method.
+Configure database credentials in `.env`, then choose one database setup method.
 
-### Option A — Laravel migrations
+### Option A — Fresh Laravel database with demo seed
 
 ```bash
-php artisan migrate
+php artisan migrate:fresh --seed
 ```
 
-### Option B — Sanitized demo database
+### Option B — Sanitized MySQL demo dump
 
 ```bash
 mysql -u YOUR_DB_USER -p YOUR_DB_NAME < database/sample/dblearnn_demo.sql
@@ -122,16 +140,52 @@ Create the public storage link for uploaded course PDFs:
 php artisan storage:link
 ```
 
-Start the application:
+Run the application:
 
 ```bash
 npm run dev
 php artisan serve
 ```
 
+## Automated Verification
+
+The CI workflow runs on pushes and pull requests and verifies:
+
+```text
+composer validate
+PHP syntax linting
+php artisan migrate:fresh --seed
+php artisan route:list
+php artisan test
+npm ci
+npm run build
+```
+
+This makes the repository reproducible for technical review instead of relying only on manual setup claims.
+
+## Demo Database
+
+A sanitized SQL sample is available at:
+
+```text
+database/sample/dblearnn_demo.sql
+```
+
+The sample contains fictional administrator, teacher, student, course, assessment, enrollment, payment, and result data. It does not contain production credentials or session payloads.
+
+Demo password for seeded/demo accounts:
+
+```text
+password
+```
+
 ## Portfolio Highlights
 
-This project demonstrates Laravel MVC architecture, multi-guard authentication, relational database design, Eloquent relationships, validated CRUD workflows, assessment submission and grading logic, access control, file uploads, and PDF generation.
+This project demonstrates Laravel MVC architecture, multi-guard authentication, relational database design, Eloquent relationships, enrollment-based authorization, validated CRUD workflows, assessment submission and grading logic, file uploads, PDF generation, automated testing, and CI verification.
+
+## License
+
+This project is available under the MIT License. See `LICENSE`.
 
 ## Author
 
