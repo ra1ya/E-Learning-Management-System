@@ -1,13 +1,13 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "ra1ya/e-learning-management-system",
+    "name": "laravel/laravel",
     "type": "project",
-    "description": "Multi-role Learning Management System built with Laravel, PHP, MySQL, and Blade.",
-    "keywords": ["laravel", "lms", "learning-management-system", "php", "mysql"],
+    "description": "The skeleton application for the Laravel framework.",
+    "keywords": ["laravel", "framework"],
     "license": "MIT",
     "require": {
         "php": "^8.2",
-        "barryvdh/laravel-dompdf": "^2.2",
+        "barryvdh/laravel-dompdf": "2.2",
         "laravel/framework": "^11.31",
         "laravel/tinker": "^2.9"
     },
